@@ -80,10 +80,17 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 
 ## Status, stated plainly
 
-- **Working and tested**: SIA v2 query client and VOTable parsing;
-  epoch grouping; track linking and motion fitting; all six proof
-  gates; Skeptic negative controls; case-file and report generation;
-  calibration data with known ground truth.
+- **Working and tested**: VOTable parsing; epoch grouping; track
+  linking and motion fitting; all six proof gates; Skeptic negative
+  controls; case-file and report generation; calibration data with
+  known ground truth (10/10 unit tests pass, end-to-end hunt verified).
+- **Live IRSA access**: the SIA client reached IRSA and parsed a valid
+  (empty) VOTable response for one small query, but repeated live
+  queries from the build sandbox timed out on 2026-11-14 (SIA and TAP,
+  up to 270 s). A live inventory with real image rows is therefore
+  still UNVERIFIED from this network; the same client is expected to
+  work from a normal connection, and IRSA queries answered fine in
+  project prep (428 images in a test query).
 - **Not yet built**: automatic source extraction from downloaded SPHEREx
   FITS images (needs astropy/SEP; detection tables are currently the
   pipeline's input), and an automated Gaia/WISE/MPC catalog fetch

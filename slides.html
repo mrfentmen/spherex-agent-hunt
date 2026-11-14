@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SPHEREx Agent Hunt — NASA Space Apps 2026</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0b0e14; color: #e8eaf0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .slide { width: 100vw; height: 100vh; padding: 7vh 8vw; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+  .slide:nth-child(even) { background: #10141f; }
+  h1 { font-size: 64px; line-height: 1.05; letter-spacing: -1px; }
+  h2 { font-size: 48px; line-height: 1.1; margin-bottom: 28px; color: #ffd166; }
+  p, li { font-size: 26px; line-height: 1.45; }
+  ul { list-style: none; }
+  li { margin: 14px 0; }
+  li b, p b { color: #ffd166; }
+  .kicker { font-size: 20px; letter-spacing: 3px; text-transform: uppercase; color: #8b93a7; margin-bottom: 18px; }
+  .sub { font-size: 28px; color: #b9c0d0; margin-top: 22px; }
+  .num { font-size: 84px; font-weight: 800; color: #ffd166; line-height: 1; }
+  .row { display: flex; gap: 48px; }
+  .col { flex: 1; }
+  .label { font-size: 18px; letter-spacing: 2px; text-transform: uppercase; color: #8b93a7; margin-bottom: 6px; }
+  .small { font-size: 20px; color: #8b93a7; margin-top: 30px; line-height: 1.5; }
+  .warn { color: #ff8a7a; }
+  table { border-collapse: collapse; font-size: 24px; }
+  td { padding: 10px 28px 10px 0; vertical-align: top; }
+  td:first-child { color: #ffd166; font-weight: 700; white-space: nowrap; }
+  @media print { body { background: #fff; color: #000; } .slide { height: auto; min-height: 100vh; } h2, li b, p b, td:first-child, .num { color: #7a5c00; } }
+</style>
+</head>
+<body>
+
+<section class="slide">
+  <div class="kicker">NASA Space Apps Challenge 2026 &middot; Challenge 12: Planet X and SPHEREx</div>
+  <h1>SPHEREx Agent Hunt</h1>
+  <p class="sub">A crew of AI agents hunting for undiscovered moving objects in NASA&rsquo;s infrared sky survey &mdash; and nothing gets called a discovery until it survives every proof check.</p>
+  <p class="small">Abdelrahman El Sayad &middot; solo team &middot; New York Local Event<br>
+  github.com/mrfentmen/spherex-agent-hunt &middot; Apache 2.0</p>
+</section>
+
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>SPHEREx photographed the whole sky in 102 infrared bands. Movers hide in it.</h2>
+  <ul>
+    <li><b>Asteroids, comets, distant slow movers</b> &mdash; they shift a little between visits, while stars sit still and glitches lie.</li>
+    <li><b>One human can&rsquo;t eyeball it.</b> The survey is patch after patch, epoch after epoch.</li>
+    <li><b>So the hunt is fully agentic.</b> The human is only the last pair of eyes &mdash; and only sees a candidate after it survives every proof gate.</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <div class="kicker">The system</div>
+  <h2>Seven agents, one job each</h2>
+  <table>
+    <tr><td>Scout</td><td>Picks the sky patches, in priority order</td></tr>
+    <tr><td>Fetcher</td><td>Pulls SPHEREx images from IRSA (SIA v2, no login needed)</td></tr>
+    <tr><td>Watcher</td><td>Groups images into observation epochs</td></tr>
+    <tr><td>Tracker</td><td>Links detections into straight-line motion tracks</td></tr>
+    <tr><td>Classifier</td><td>Labels tracks: stationary, moving candidate, rejected</td></tr>
+    <tr><td>Skeptic</td><td>Re-runs the hunt on sabotaged data and tries to kill every candidate</td></tr>
+    <tr><td>Reporter</td><td>Writes the run report and any case file, with full provenance</td></tr>
+  </table>
+</section>
+
+<section class="slide">
+  <div class="kicker">The proof bar</div>
+  <h2>Six gates. FAIL kills. UNVERIFIED stays a candidate.</h2>
+  <ul>
+    <li><b>1. Repeat epochs</b> &mdash; seen in 3+ distinct epochs</li>
+    <li><b>2. Linear motion</b> &mdash; one straight-line fit, small residuals, physical rate</li>
+    <li><b>3. Hold-out prediction</b> &mdash; the fit must predict the next epoch&rsquo;s position</li>
+    <li><b>4. Artifact exclusion</b> &mdash; round, point-sized, above the SNR floor</li>
+    <li><b>5. Catalog cross-match</b> &mdash; no known Gaia / WISE / MPC source there</li>
+    <li><b>6. Spectrum consistency</b> &mdash; consistent flux across SPHEREx&rsquo;s 102 bands</li>
+  </ul>
+  <p class="small">A case file &mdash; the only thing a human reviews &mdash; needs all six PASS.</p>
+</section>
+
+<section class="slide">
+  <div class="kicker">Calibration &mdash; synthetic test data, labelled as such</div>
+  <h2>The pipeline works. Here is the receipt.</h2>
+  <div class="row">
+    <div class="col"><div class="num">32.33</div><p>arcsec/day &mdash; planted mover found, 4 epochs, fit rms 0.09 arcsec, hold-out prediction off by only 0.26 arcsec</p></div>
+    <div class="col"><div class="num">6 + 2</div><p>stars killed as stationary (0.00&ndash;0.01 arcsec/day) and glitches killed on roundness &mdash; none became case files</p></div>
+    <div class="col"><div class="num">0</div><p>case files. No discovery claimed. The mover stays a <b>candidate</b> until the catalog gate can pass.</p></div>
+  </div>
+  <p class="small">10/10 unit tests pass. End-to-end calibration hunt re-run and verified Sat Nov 14.</p>
+</section>
+
+<section class="slide">
+  <div class="kicker">Live data &mdash; stated plainly</div>
+  <h2>Real sky, next.</h2>
+  <ul>
+    <li><b>The IRSA client works:</b> it queries SIA v2 and parses real VOTable replies. No API key, account, or login.</li>
+    <li><b class="warn">Live inventory is still unverified from the build network:</b> repeated queries from this sandbox failed Sat Nov 14 (HTTP 502 proxy error). It answered fine in prep &mdash; 428 images in a test query.</li>
+    <li><b>Next:</b> retry the live inventory from a normal connection, run a real patch hunt, add FITS source extraction and an automated Gaia / WISE / MPC fetch.</li>
+  </ul>
+  <p class="small">Every claim in a case file traces to a specific IRSA file (obs_id + access_url).</p>
+</section>
+
+<section class="slide">
+  <div class="kicker">Sources &amp; disclosure</div>
+  <h2>Try it. Check it. Kill it if it&rsquo;s wrong.</h2>
+  <p>github.com/mrfentmen/spherex-agent-hunt</p>
+  <p class="sub">Python, standard library only, no dependencies. Apache 2.0.</p>
+  <ul>
+    <li>Data: SPHEREx via IRSA (NASA/IPAC Infrared Science Archive)</li>
+    <li>Built with AI assistance, disclosed as <b>&ldquo;Super Intelligence&rdquo;</b> per Space Apps rules</li>
+    <li>All findings require human verification</li>
+  </ul>
+  <p class="small">Thank you &mdash; questions welcome.</p>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spherex-agent-hunt"
+version = "0.1.0"
+description = "Fully agentic hunter for moving objects in NASA SPHEREx data, with proof gates before anything is called a discovery. NASA Space Apps Challenge 2026, Challenge 12."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+spherex-hunt = "spherex_hunt.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

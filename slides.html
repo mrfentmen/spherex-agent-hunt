@@ -2,11 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SPHEREx Agent Hunt — NASA Space Apps 2026</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0b0e14; color: #e8eaf0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-  .slide { width: 100vw; height: 100vh; padding: 7vh 8vw; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+  body { background: #0b0e14; color: #e8eaf0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; counter-reset: slide; }
+  .slide { width: 100vw; min-height: 100vh; padding: 7vh 8vw; display: flex; flex-direction: column; justify-content: center; page-break-after: always; counter-increment: slide; position: relative; }
+  .slide::after { content: counter(slide) " / 7"; position: absolute; bottom: 3vh; right: 4vw; font-size: 16px; color: #8b93a7; }
+  .slide img { max-width: 100%; height: auto; }
+  .nav { position: fixed; bottom: 3vh; left: 4vw; display: flex; gap: 8px; z-index: 10; }
+  .nav button { background: #1a2130; color: #e8eaf0; border: 1px solid #8b93a7; font-size: 16px; padding: 6px 14px; cursor: pointer; }
+  .nav button:hover { border-color: #ffd166; color: #ffd166; }
   .slide:nth-child(even) { background: #10141f; }
   h1 { font-size: 64px; line-height: 1.05; letter-spacing: -1px; }
   h2 { font-size: 48px; line-height: 1.1; margin-bottom: 28px; color: #ffd166; }
@@ -25,7 +31,7 @@
   table { border-collapse: collapse; font-size: 24px; }
   td { padding: 10px 28px 10px 0; vertical-align: top; }
   td:first-child { color: #ffd166; font-weight: 700; white-space: nowrap; }
-  @media print { body { background: #fff; color: #000; } .slide { height: auto; min-height: 100vh; } h2, li b, p b, td:first-child, .num { color: #7a5c00; } }
+  @media print { body { background: #fff; color: #000; } .slide { height: auto; min-height: 100vh; } h2, li b, p b, td:first-child, .num { color: #7a5c00; } .nav, .slide::after { display: none; } }
 </style>
 </head>
 <body>
@@ -84,7 +90,7 @@
     <div class="col"><div class="num">6 + 2</div><p>stars killed as stationary (0.00&ndash;0.01 arcsec/day) and glitches killed on roundness &mdash; none became case files</p></div>
     <div class="col"><div class="num">0</div><p>case files. No discovery claimed. The mover stays a <b>candidate</b> until the catalog gate can pass.</p></div>
   </div>
-  <p class="small">14/14 unit tests pass. End-to-end calibration hunt re-run and verified Sun Nov 15.</p>
+  <p class="small">21/21 unit tests pass. End-to-end calibration hunt re-run and verified Sun Nov 15.</p>
 </section>
 
 <section class="slide">
@@ -114,5 +120,26 @@
   <p class="small">Thank you &mdash; questions welcome.</p>
 </section>
 
+<div class="nav"><button id="prev">&larr; Prev</button><button id="next">Next &rarr;</button><button id="print">Print / PDF</button></div>
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0;
+  function go(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides[i].scrollIntoView();
+  }
+  document.getElementById('prev').onclick = function () { go(i - 1); };
+  document.getElementById('next').onclick = function () { go(i + 1); };
+  document.getElementById('print').onclick = function () { window.print(); };
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === ' ') go(i + 1);
+    if (e.key === 'ArrowLeft') go(i - 1);
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.tagName !== 'BUTTON') go(i + 1);
+  });
+})();
+</script>
 </body>
 </html>

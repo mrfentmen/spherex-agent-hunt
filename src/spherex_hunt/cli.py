@@ -53,6 +53,8 @@ def main(argv: list[str] | None = None) -> int:
     ext.add_argument("--nsigma", type=float, default=5.0)
     ext.add_argument("--top-k", type=int, default=400)
     ext.add_argument("--edge", type=int, default=5)
+    ext.add_argument("--band", default=None,
+                     help="band label (default: detector tag from file name)")
     ext.add_argument("--out", required=True)
 
     args = ap.parse_args(argv)
@@ -100,9 +102,11 @@ def main(argv: list[str] | None = None) -> int:
         from . import extract as _ex
         import csv
         dets = _ex.extract_frame(args.fits, args.epoch, args.mjd, args.image_id,
-                                 nsigma=args.nsigma, top_k=args.top_k, edge=args.edge)
+                                 nsigma=args.nsigma, top_k=args.top_k, edge=args.edge,
+                                 band=args.band)
         cols = ["source_id", "epoch_id", "mjd", "ra_deg", "dec_deg", "snr",
-                "flux", "roundness", "pixel_area", "x_px", "y_px", "image_id"]
+                "flux", "roundness", "pixel_area", "x_px", "y_px", "image_id",
+                "band", "flux_band"]
         with open(args.out, "w", newline="") as fh:
             w = csv.DictWriter(fh, fieldnames=cols)
             w.writeheader()

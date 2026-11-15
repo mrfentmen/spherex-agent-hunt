@@ -25,6 +25,10 @@ def find_peaks(img: np.ndarray, nsigma: float = 5.0, edge: int = 5) -> list[tupl
     for y, x in zip(ys.tolist(), xs.tolist()):
         if x < edge or y < edge or x >= w - edge or y >= h - edge:
             continue
+        y0, y1 = max(0, y - 4), min(h, y + 5)
+        x0, x1 = max(0, x - 4), min(w, x + 5)
+        if np.isfinite(img[y0:y1, x0:x1]).mean() < 0.5:
+            continue  # masked/bad region, not a source
         y0, y1 = max(0, y - 1), min(work.shape[0], y + 2)
         x0, x1 = max(0, x - 1), min(work.shape[1], x + 2)
         if work[y, x] == work[y0:y1, x0:x1].max():
@@ -117,6 +121,28 @@ def read_image_and_variance(path: str):
         return hdr0, img, var
 
 
+def band_from_path(path: str) -> str:
+    """Detector/band tag from a FITS file name, e.g. '1D2'. '' when absent."""
+    import os
+    from .sia import detector_key
+    return detector_key(os.path.basename(path))
+
+
+def aperture_flux(img, cx: float, cy: float, r: int = 4) -> float:
+    """Fixed-aperture sum minus local background (annulus median)."""
+    h, w = img.shape
+    xs = slice(max(0, int(cx) - 9), min(w, int(cx) + 10))
+    ys = slice(max(0, int(cy) - 9), min(h, int(cy) + 10))
+    cut = img[ys, xs].astype(float)
+    yy, xx = np.mgrid[ys, xs]
+    dist = np.hypot(xx - cx, yy - cy)
+    ap = np.where(np.isfinite(cut), cut, np.nan)
+    in_ap = (dist <= r) & np.isfinite(cut)
+    ring = (dist > r + 2) & (dist <= r + 5) & np.isfinite(cut)
+    bg = float(np.median(cut[ring])) if ring.any() else float(np.nanmedian(ap))
+    return float(np.nansum(np.where(in_ap, cut - bg, 0.0)))
+
+
 def moments(img, x, y, r=4):
     y0, y1 = max(0, y-r), min(img.shape[0], y+r+1)
     x0, x1 = max(0, x-r), min(img.shape[1], x+r+1)
@@ -156,7 +182,8 @@ def xy_to_radec(hdr, x, y, scale=None) -> tuple[float, float]:
     return ra0 + (x - 1020.0) * s / max(math.cos(math.radians(dec0)), 0.2), dec0 + (y - 1020.0) * s
 
 
-def extract_frame(path: str, epoch_id: str, mjd: float, image_id: str, nsigma=5.0, top_k=400, edge=5):
+def extract_frame(path: str, epoch_id: str, mjd: float, image_id: str, nsigma=5.0, top_k=400, edge=5,
+                band: str | None = None):
     from .detections import Detection
     hdr, img, var = read_image_and_variance(path)
     med, sigma = background_mad(img)
@@ -164,11 +191,14 @@ def extract_frame(path: str, epoch_id: str, mjd: float, image_id: str, nsigma=5.
     peaks.sort(key=lambda p: p[2], reverse=True)
     peaks = peaks[:top_k]
     scale = pix_scale_deg(hdr)
+    band = band if band else band_from_path(path)
     dets = []
     for i, (x, y, peak) in enumerate(peaks):
-        cx, cy, rnd, area, flux = moments(img, x, y)
+        cx, cy, rnd, area, _ = moments(img, x, y)
         ra, dec = xy_to_radec(hdr, cx, cy, scale)
         vv = var[int(y), int(x)] if var is not None else float("nan")
         snr = local_snr(peak, med, vv, sigma)
-        dets.append(Detection(f'FITS-{i}', epoch_id, mjd, ra, dec, snr, flux, rnd, area, cx, cy, image_id))
+        flux = aperture_flux(img, cx, cy)
+        dets.append(Detection(f'FITS-{i}', epoch_id, mjd, ra, dec, snr, flux, rnd, area, cx, cy, image_id,
+                              band=band, flux_band=flux if band else None))
     return dets

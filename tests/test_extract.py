@@ -31,6 +31,25 @@ class TestExtract(unittest.TestCase):
         self.assertAlmostEqual(local_snr(10.0, 2.0, 0.0, 4.0), 2.0)
         self.assertAlmostEqual(local_snr(10.0, 2.0, float("nan"), 4.0), 2.0)
 
+    def test_band_from_path(self):
+        from spherex_hunt.extract import band_from_path
+        self.assertEqual(band_from_path("/x/level2_2026W20_2A_0464_1D2_spx.fits"), "1D2")
+        self.assertEqual(band_from_path("nodetector.fits"), "")
+
+    def test_aperture_flux_subtracts_background(self):
+        from spherex_hunt.extract import aperture_flux
+        img = np.full((32, 32), 10.0, dtype=np.float32)
+        img[16, 16] = 110.0
+        self.assertAlmostEqual(aperture_flux(img, 16.0, 16.0), 100.0, delta=15.0)
+
+    def test_nan_region_peak_rejected(self):
+        img = np.zeros((32, 32), dtype=np.float32)
+        img[5:25, 5:25] = np.nan
+        img[15, 15] = 50.0
+        img[28, 28] = 50.0
+        peaks = find_peaks(img, nsigma=1.0, edge=2)
+        self.assertEqual([(x, y) for x, y, _ in peaks], [(28, 28)])
+
     def test_read_image_and_variance_roundtrip(self):
         import os
         import tempfile

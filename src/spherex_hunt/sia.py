@@ -52,7 +52,11 @@ def build_query_url(ra_deg: float, dec_deg: float, radius_deg: float,
         "POS": f"CIRCLE {ra_deg} {dec_deg} {radius_deg}",
         "COLLECTION": collection,
         "MAXREC": str(maxrec),
-        "FORMAT": "application/x-votable+xml",
+        # No FORMAT parameter: IRSA's SIA service silently returns an
+        # empty table (QUERY_STATUS OK, zero rows) when
+        # FORMAT=application/x-votable+xml is passed. Verified
+        # 2026-11-15 by bisection: same query without FORMAT returns
+        # the real rows; the default response is already VOTable.
     }
     return SIA_ENDPOINT + "?" + urllib.parse.urlencode(params)
 

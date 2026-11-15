@@ -199,6 +199,39 @@ def sip_to_radec(hdr, x: float, y: float) -> tuple[float, float]:
     return math.degrees(ra) % 360.0, math.degrees(dec)
 
 
+def sip_reverse(hdr, ra: float, dec: float) -> tuple[float, float]:
+    """Sky to pixel via TAN forward projection, AP/BP undistortion, inverse linear."""
+    import math
+    ra0 = _hdr_float(hdr, "CRVAL1")
+    dec0 = _hdr_float(hdr, "CRVAL2")
+    crpix1 = _hdr_float(hdr, "CRPIX1")
+    crpix2 = _hdr_float(hdr, "CRPIX2")
+    ra0r, dec0r, rar, decr = (math.radians(a) for a in (ra0, dec0, ra, dec))
+    dra = rar - ra0r
+    denom = (math.sin(decr) * math.sin(dec0r)
+             + math.cos(decr) * math.cos(dec0r) * math.cos(dra))
+    U = math.degrees(math.cos(decr) * math.sin(dra) / denom)
+    V = math.degrees((math.sin(decr) * math.cos(dec0r)
+                      - math.cos(decr) * math.sin(dec0r) * math.cos(dra)) / denom)
+    apo = int(_hdr_float(hdr, "AP_ORDER", 0))
+    bpo = int(_hdr_float(hdr, "BP_ORDER", 0))
+    u = U + _sip_poly(hdr, "AP", apo, U, V)
+    v = V + _sip_poly(hdr, "BP", bpo, U, V)
+    cd11 = _hdr_float(hdr, "CD1_1"); cd12 = _hdr_float(hdr, "CD1_2")
+    cd21 = _hdr_float(hdr, "CD2_1"); cd22 = _hdr_float(hdr, "CD2_2")
+    if cd11 == 0.0 and cd12 == 0.0 and cd21 == 0.0 and cd22 == 0.0:
+        pc11 = _hdr_float(hdr, "PC1_1", 1.0); pc12 = _hdr_float(hdr, "PC1_2", 0.0)
+        pc21 = _hdr_float(hdr, "PC2_1", 0.0); pc22 = _hdr_float(hdr, "PC2_2", 1.0)
+        cd11, cd12 = pc11 * _hdr_float(hdr, "CDELT1", 1.0), pc12 * _hdr_float(hdr, "CDELT1", 1.0)
+        cd21, cd22 = pc21 * _hdr_float(hdr, "CDELT2", 1.0), pc22 * _hdr_float(hdr, "CDELT2", 1.0)
+    det = cd11 * cd22 - cd12 * cd21
+    if det == 0.0:
+        raise ValueError("singular WCS linear matrix")
+    dx = (u * cd22 - v * cd12) / det
+    dy = (-u * cd21 + v * cd11) / det
+    return crpix1 + dx, crpix2 + dy
+
+
 def moments(img, x, y, r=4):
     y0, y1 = max(0, y-r), min(img.shape[0], y+r+1)
     x0, x1 = max(0, x-r), min(img.shape[1], x+r+1)

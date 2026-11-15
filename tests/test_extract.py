@@ -113,6 +113,72 @@ class TestExtract(unittest.TestCase):
         self.assertAlmostEqual(ra, 0.5, places=4)  # exact TAN, not flat-sky
         self.assertAlmostEqual(dec, 0.0, places=6)
 
+    def test_sip_reverse_roundtrip(self):
+        from spherex_hunt.extract import sip_reverse, sip_to_radec
+        hdr = {"CRVAL1": "10.0", "CRVAL2": "20.0", "CRPIX1": "100.0", "CRPIX2": "100.0",
+               "CD1_1": "0.001", "CD1_2": "0.0002", "CD2_1": "-0.0001", "CD2_2": "0.0011",
+               "A_ORDER": "2", "B_ORDER": "2", "A_2_0": "0.001", "B_0_2": "-0.002",
+               "AP_ORDER": "2", "BP_ORDER": "2"}
+        # reverse of the forward map needs the AP/BP pair; here only the
+        # linear part round-trips exactly, distortion to first order
+        ra, dec = sip_to_radec(hdr, 105.0, 95.0)
+        x, y = sip_reverse(hdr, ra, dec)
+        self.assertAlmostEqual(x, 105.0, delta=2.0)
+        self.assertAlmostEqual(y, 95.0, delta=2.0)
+
+    def test_all_nan_yields_no_peaks(self):
+        img = np.full((32, 32), np.nan, dtype=np.float32)
+        self.assertEqual(find_peaks(img), [])
+
+    def test_flat_image_yields_no_peaks(self):
+        img = np.full((32, 32), 7.0, dtype=np.float32)
+        self.assertEqual(find_peaks(img), [])
+
+    def test_aperture_nan_and_border(self):
+        from spherex_hunt.extract import aperture_flux
+        img = np.full((32, 32), np.nan, dtype=np.float32)
+        self.assertEqual(aperture_flux(img, 16.0, 16.0), 0.0)
+        img2 = np.full((32, 32), 10.0, dtype=np.float32)
+        img2[0, 0] = 110.0
+        self.assertGreater(aperture_flux(img2, 0.0, 0.0), 0.0)
+
+    def test_moments_subpixel_centroid(self):
+        from spherex_hunt.extract import moments
+        yy, xx = np.mgrid[0:32, 0:32]
+        img = (1000.0 * np.exp(-((xx - 10.3) ** 2 + (yy - 20.7) ** 2) / 2.0)).astype(np.float32)
+        cx, cy, _, _, _ = moments(img, 10, 21)
+        self.assertAlmostEqual(cx, 10.3, delta=0.1)
+        self.assertAlmostEqual(cy, 20.7, delta=0.1)
+
+    def test_variance_absent_returns_none(self):
+        import os
+        import tempfile
+
+        def card(k, v):
+            return (k.ljust(8) + "= " + v.rjust(20)).ljust(80)[:80]
+
+        def hdu(pairs, data=b""):
+            blk = "".join([card(k, v) for k, v in pairs] + ["END".ljust(80)])
+            while len(blk) % 2880:
+                blk += " " * 80
+            raw = blk.encode("ascii") + data
+            return raw + b"\0" * ((-len(raw)) % 2880)
+
+        img = np.ones((4, 4), dtype=np.float32)
+        primary = hdu([("SIMPLE", "T"), ("BITPIX", "8"),
+                       ("NAXIS", "0"), ("EXTEND", "T")])
+        image = hdu([("XTENSION", "'IMAGE   '"), ("BITPIX", "-32"),
+                     ("NAXIS", "2"), ("NAXIS1", "4"),
+                     ("NAXIS2", "4"), ("EXTNAME", "'IMAGE   '")],
+                    img.astype(">f4").tobytes())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "t.fits")
+            with open(path, "wb") as fh:
+                fh.write(primary + image)
+            _, got, got_var = read_image_and_variance(path)
+        self.assertEqual(got.shape, (4, 4))
+        self.assertIsNone(got_var)
+
 
 if __name__ == '__main__':
     unittest.main()

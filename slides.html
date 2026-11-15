@@ -84,17 +84,17 @@
     <div class="col"><div class="num">6 + 2</div><p>stars killed as stationary (0.00&ndash;0.01 arcsec/day) and glitches killed on roundness &mdash; none became case files</p></div>
     <div class="col"><div class="num">0</div><p>case files. No discovery claimed. The mover stays a <b>candidate</b> until the catalog gate can pass.</p></div>
   </div>
-  <p class="small">10/10 unit tests pass. End-to-end calibration hunt re-run and verified Sat Nov 14.</p>
+  <p class="small">14/14 unit tests pass. End-to-end calibration hunt re-run and verified Sun Nov 15.</p>
 </section>
 
 <section class="slide">
-  <div class="kicker">Live data &mdash; stated plainly</div>
-  <h2>Real sky, next.</h2>
+  <div class="kicker">Live data &mdash; verified Sun Nov 15</div>
+  <h2>Real sky. Real hunt. Still nothing claimed.</h2>
   <ul>
-    <li><b>The IRSA client works:</b> it queries SIA v2 and parses real VOTable replies. No API key, account, or login.</li>
-    <li><b>Live inventory VERIFIED Sun Nov 15:</b> the empty results were our own bug &mdash; a FORMAT parameter that IRSA silently answers with an empty table. Found by bisection, fixed, pushed. A 0.05&deg; cone on spherex_qr3 returned <b>10 real images</b> in about 2 seconds, grouped into 2 epochs.</li>
-    <li><b>Still true:</b> wide searches from the build sandbox die at its egress proxy (HTTP 502), so hunts run in small patches. In prep, one test query returned 428 images.</li>
-    <li><b>Next:</b> run a real patch hunt, add FITS source extraction and an automated Gaia / WISE / MPC fetch.</li>
+    <li><b>Live inventory VERIFIED Sun Nov 15:</b> the empty results were our own bug &mdash; a FORMAT parameter IRSA silently answers with an empty table. Found by bisection, fixed, pushed &mdash; the same query then returned real rows.</li>
+    <li><b>132 SPHEREx images in 15 epochs</b> from a 0.05 deg cone (qr3; same cone on dr1: 254 images, 26 epochs). No API key, account, or login.</li>
+    <li><b>Real 3-frame hunt:</b> 3 overlapping frames over 36 days, 180 numpy detections, 2 tracks linked through all 3 epochs &mdash; <b class="warn">both killed on artifact shape</b>. 0 case files.</li>
+    <li><b>Honest caveats:</b> wide cones still hit the sandbox proxy (502); shuffled times still linked 2 tracks (WARNING); catalog cross-match stays UNVERIFIED without Gaia / WISE / MPC.</li>
   </ul>
   <p class="small">Every claim in a case file traces to a specific IRSA file (obs_id + access_url).</p>
 </section>
@@ -103,7 +103,7 @@
   <div class="kicker">Sources &amp; disclosure</div>
   <h2>Try it. Check it. Kill it if it&rsquo;s wrong.</h2>
   <p>github.com/mrfentmen/spherex-agent-hunt</p>
-  <p class="sub">Python, standard library only, no dependencies. Apache 2.0.</p>
+  <p class="sub">Python, stdlib plus numpy for the extractor, no other dependencies. Apache 2.0.</p>
   <ul>
     <li>Data: SPHEREx via IRSA (NASA/IPAC Infrared Science Archive)</li>
     <li>Built with AI assistance, disclosed as <b>&ldquo;Super Intelligence&rdquo;</b> per Space Apps rules</li>

@@ -44,7 +44,7 @@ the only output a human is asked to review, requires all gates to PASS.
 
 ## Quick start
 
-No dependencies. Python 3.10+, standard library only.
+No API key. Python 3.10+; stdlib only except `extract`, which needs numpy.
 
 ```bash
 # Live: ask IRSA what SPHEREx images cover a patch of sky
@@ -83,7 +83,10 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 - **Working and tested**: VOTable parsing; epoch grouping; track
   linking and motion fitting; all six proof gates; Skeptic negative
   controls; case-file and report generation; calibration data with
-  known ground truth (10/10 unit tests pass, end-to-end hunt verified).
+  known ground truth (14/14 unit tests pass, end-to-end hunt verified);
+  plus a numpy-only FITS extractor (`extract` command: HDU1 read,
+  NaN-safe background, local-max peaks with duplicate suppression and
+  edge margin, moment shapes, linear-TAN sky positions).
 - **Live IRSA access**: VERIFIED 2026-11-15. Two stacked faults were
   found and separated. First, our own bug: the client sent
   FORMAT=application/x-votable+xml, and IRSA's SIA service silently
@@ -91,15 +94,17 @@ PYTHONPATH=src python -m unittest discover -s tests -v
   rows); dropping it fixed the client, proven by bisection against the
   identical query. Second, the build sandbox's egress proxy kills slow
   queries (HTTP 502 / timeouts on wide searches), so hunts run in
-  small patches: a 0.05 degree cone on spherex_qr3 returned 10 real
-  images in about 2 seconds, grouped into 2 epochs by the inventory
-  command. A wide area inventory from this network is still proxy
+  small patches: a 0.05 degree cone on spherex_qr3 returned 132 real
+  images grouped into 15 epochs (same cone on spherex_dr1: 254 images,
+  26 epochs). A wide area inventory from this network is still proxy
   limited; from a normal connection the same client has no such
   ceiling (project prep pulled 428 images in one test query).
-- **Not yet built**: automatic source extraction from downloaded SPHEREx
-  FITS images (needs astropy/SEP; detection tables are currently the
-  pipeline's input), and an automated Gaia/WISE/MPC catalog fetch
-  (catalogs are currently supplied as CSV exports). These are labeled
+- **Real-sky run (Nov 15)**: 3 overlapping same-sky frames, 36-day span,
+  180 numpy detections, 2 tracks linked across all 3 epochs (114 and 234
+  arcsec/day, hold-out PASS) — both KILLED on artifact_exclusion, 0 case
+  files. The gates work on real data; nothing is claimed.
+- **Not yet built**: an automated Gaia/WISE/MPC catalog fetch
+  (catalogs are currently supplied as CSV exports). Labeled
   UNVERIFIED in the gates rather than silently assumed.
 
 ## AI use disclosure

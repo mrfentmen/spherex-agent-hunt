@@ -9,7 +9,7 @@ description = "Fully agentic hunter for moving objects in NASA SPHEREx data, wit
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["numpy"]
 
 [project.scripts]
 spherex-hunt = "spherex_hunt.cli:main"

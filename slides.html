@@ -94,8 +94,10 @@
     <li><b>Live inventory VERIFIED Sun Nov 15:</b> the empty results were our own bug &mdash; a FORMAT parameter IRSA silently answers with an empty table. Found by bisection, fixed, pushed &mdash; the same query then returned real rows.</li>
     <li><b>132 SPHEREx images in 15 epochs</b> from a 0.05 deg cone (qr3; same cone on dr1: 254 images, 26 epochs). No API key, account, or login.</li>
     <li><b>Real 3-frame hunt:</b> 3 overlapping frames over 36 days, 180 numpy detections, 2 tracks linked through all 3 epochs &mdash; <b class="warn">both killed on artifact shape</b>. 0 case files.</li>
-    <li><b>Honest caveats:</b> wide cones still hit the sandbox proxy (502); shuffled times still linked 2 tracks (WARNING); catalog cross-match stays UNVERIFIED without Gaia / WISE / MPC.</li>
+    <li><b>Honest caveats:</b> wide cones still hit the sandbox proxy (502); shuffled times still linked 2 tracks (NOTE); catalog cross-match stays UNVERIFIED without Gaia / WISE / MPC.</li>
   </ul>
+  <p class="small">Same field center, 3 visits, 36 days apart — blink and the sky barely moves:</p>
+  <p><img src="blink.gif" alt="Three-epoch blink of the same SPHEREx field" width="384"></p>
   <p class="small">Every claim in a case file traces to a specific IRSA file (obs_id + access_url).</p>
 </section>
 

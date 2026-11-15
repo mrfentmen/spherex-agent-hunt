@@ -92,8 +92,9 @@
   <h2>Real sky, next.</h2>
   <ul>
     <li><b>The IRSA client works:</b> it queries SIA v2 and parses real VOTable replies. No API key, account, or login.</li>
-    <li><b class="warn">Live inventory is still unverified from the build network:</b> repeated queries from this sandbox failed Sat Nov 14 (HTTP 502 proxy error). It answered fine in prep &mdash; 428 images in a test query.</li>
-    <li><b>Next:</b> retry the live inventory from a normal connection, run a real patch hunt, add FITS source extraction and an automated Gaia / WISE / MPC fetch.</li>
+    <li><b>Live inventory VERIFIED Sun Nov 15:</b> the empty results were our own bug &mdash; a FORMAT parameter that IRSA silently answers with an empty table. Found by bisection, fixed, pushed. A 0.05&deg; cone on spherex_qr3 returned <b>10 real images</b> in about 2 seconds, grouped into 2 epochs.</li>
+    <li><b>Still true:</b> wide searches from the build sandbox die at its egress proxy (HTTP 502), so hunts run in small patches. In prep, one test query returned 428 images.</li>
+    <li><b>Next:</b> run a real patch hunt, add FITS source extraction and an automated Gaia / WISE / MPC fetch.</li>
   </ul>
   <p class="small">Every claim in a case file traces to a specific IRSA file (obs_id + access_url).</p>
 </section>

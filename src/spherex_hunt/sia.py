@@ -150,3 +150,27 @@ def write_inventory(records: list[ImageRecord], path: str) -> None:
         w.writeheader()
         for r in records:
             w.writerow(r.to_dict())
+
+
+def pick_overlapping_frames(records: list[ImageRecord], min_gap_days: float = 1.0,
+                             max_sep_deg: float = 0.5, limit: int = 3) -> list[ImageRecord]:
+    """Pick same-sky frames across spaced epochs."""
+    from .detections import angular_sep_arcsec
+
+    cands = [r for r in records if r.ra_deg is not None and r.dec_deg is not None
+             and r.t_min_mjd is not None]
+    cands.sort(key=lambda r: r.t_min_mjd)
+    picks: list[ImageRecord] = []
+    for r in cands:
+        if not picks:
+            picks.append(r)
+            continue
+        if len(picks) >= limit:
+            break
+        if r.t_min_mjd - picks[-1].t_min_mjd < min_gap_days:
+            continue
+        if angular_sep_arcsec(picks[0].ra_deg, picks[0].dec_deg,
+                              r.ra_deg, r.dec_deg) > max_sep_deg * 3600.0:
+            continue
+        picks.append(r)
+    return picks

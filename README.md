@@ -83,7 +83,7 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 - **Working and tested**: VOTable parsing; epoch grouping; track
   linking and motion fitting; all six proof gates; Skeptic negative
   controls; case-file and report generation; calibration data with
-  known ground truth (26/26 unit tests pass, end-to-end hunt verified);
+  known ground truth (64/64 unit tests pass, end-to-end hunt verified);
   plus a numpy-only FITS extractor (`extract` command: HDU1 read,
   NaN-safe background, local-max peaks with duplicate suppression and
   edge margin, moment shapes, linear-TAN sky positions).

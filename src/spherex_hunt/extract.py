@@ -26,8 +26,14 @@ def find_peaks(img: np.ndarray, nsigma: float = 5.0) -> list[tuple[int, int, flo
         x0, x1 = max(0, x - 1), min(work.shape[1], x + 2)
         if work[y, x] == work[y0:y1, x0:x1].max():
             out.append((x, y, float(work[y, x])))
-    # shortcut: 8-connected dedupe is approximate, upgrade to label() when false splits appear.
-    return out
+    # NMS: brightest-first, min Chebyshev separation 3 px; pre-cap keeps it cheap.
+    out.sort(key=lambda p: p[2], reverse=True)
+    out = out[:2000]
+    kept: list[tuple[int, int, float]] = []
+    for x, y, v in out:
+        if all(max(abs(x - kx), abs(y - ky)) >= 3 for kx, ky, _ in kept):
+            kept.append((x, y, v))
+    return kept
 
 
 def read_hdu1(path: str):

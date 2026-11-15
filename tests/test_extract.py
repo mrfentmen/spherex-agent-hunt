@@ -11,6 +11,12 @@ class TestExtract(unittest.TestCase):
         peaks = find_peaks(img, nsigma=5.0)
         self.assertEqual(len(peaks), 2)
 
+    def test_plateau_yields_one_peak(self):
+        img = np.zeros((32, 32), dtype=np.float32)
+        img[10:13, 10:13] = 50.0
+        peaks = find_peaks(img, nsigma=1.0)
+        self.assertEqual(len(peaks), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -38,6 +38,12 @@ class ImageRecord:
     access_url: str
     instrument: str = ""
     dataproduct_type: str = ""
+    t_exptime_s: float | None = None
+    em_min_um: float | None = None
+    em_max_um: float | None = None
+    s_resolution_arcsec: float | None = None
+    s_fov_deg: float | None = None
+    target_moving: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -109,6 +115,12 @@ def parse_votable(xml_bytes: bytes) -> list[ImageRecord]:
             access_url=row.get("access_url", ""),
             instrument=row.get("instrument_name", ""),
             dataproduct_type=row.get("dataproduct_type", ""),
+            t_exptime_s=fnum("t_exptime"),
+            em_min_um=(lambda v: v * 1e6 if v is not None else None)(fnum("em_min")),
+            em_max_um=(lambda v: v * 1e6 if v is not None else None)(fnum("em_max")),
+            s_resolution_arcsec=fnum("s_resolution"),
+            s_fov_deg=fnum("s_fov"),
+            target_moving=row.get("target_moving", ""),
         ))
     return records
 
@@ -130,7 +142,9 @@ def write_inventory(records: list[ImageRecord], path: str) -> None:
             json.dump([r.to_dict() for r in records], fh, indent=2)
         return
     cols = ["obs_id", "collection", "ra_deg", "dec_deg", "t_min_mjd",
-            "t_max_mjd", "access_url", "instrument", "dataproduct_type"]
+            "t_max_mjd", "access_url", "instrument", "dataproduct_type",
+            "t_exptime_s", "em_min_um", "em_max_um", "s_resolution_arcsec",
+            "s_fov_deg", "target_moving"]
     with open(path, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=cols)
         w.writeheader()

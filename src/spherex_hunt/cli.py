@@ -43,6 +43,15 @@ def main(argv: list[str] | None = None) -> int:
     hunt.add_argument("--catalog")
     hunt.add_argument("--out", required=True)
 
+    ext = sub.add_parser("extract", help="FITS HDU1 -> detections CSV (numpy only)")
+    ext.add_argument("--fits", required=True)
+    ext.add_argument("--epoch", required=True)
+    ext.add_argument("--mjd", type=float, required=True)
+    ext.add_argument("--image-id", required=True)
+    ext.add_argument("--nsigma", type=float, default=5.0)
+    ext.add_argument("--top-k", type=int, default=400)
+    ext.add_argument("--out", required=True)
+
     args = ap.parse_args(argv)
 
     if args.cmd == "inventory":
@@ -81,6 +90,21 @@ def main(argv: list[str] | None = None) -> int:
                     fh.write(agents.case_file_markdown(result, i) + "\n")
         print(report)
         print(f"report + {n_case} case file(s) -> {args.out}")
+        return 0
+
+    if args.cmd == "extract":
+        from . import extract as _ex
+        import csv
+        dets = _ex.extract_frame(args.fits, args.epoch, args.mjd, args.image_id,
+                                 nsigma=args.nsigma, top_k=args.top_k)
+        cols = ["source_id", "epoch_id", "mjd", "ra_deg", "dec_deg", "snr",
+                "flux", "roundness", "pixel_area", "x_px", "y_px", "image_id"]
+        with open(args.out, "w", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=cols)
+            w.writeheader()
+            for d in dets:
+                w.writerow({c: getattr(d, c) for c in cols})
+        print(f"{len(dets)} detections -> {args.out}")
         return 0
     return 2
 

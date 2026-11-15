@@ -16,7 +16,7 @@
 
 **5. Calibration receipt (~60s)** — This is synthetic test data, labelled on the slide. Planted mover: found at 32.33 arcsec/day, 4 epochs, fit rms 0.09 arcsec, hold-out prediction off by 0.26 arcsec. Six stars killed as stationary, two glitches killed on roundness. Zero case files — the mover stays a candidate until the catalog gate passes. 10/10 tests pass.
 
-**6. Live data (~40s)** — Honest status: the IRSA client works and parses real VOTable replies, no login needed. But live inventory from the build sandbox failed all day Saturday (HTTP 502 proxy error); it answered fine in prep with 428 images. Next: retry from a normal connection, run a real patch hunt, add FITS extraction and automated catalog fetch.
+**6. Live data (~40s)** — Live inventory VERIFIED Sun Nov 15: the empty results were our own bug, a FORMAT parameter IRSA silently answers with an empty table; found by bisection, fixed, pushed. A 0.05 degree cone on spherex_qr3 returned 10 real images in about 2 seconds, 2 epochs. Wide searches from the build sandbox still die at its proxy (HTTP 502), so hunts run in small patches. Next: a real patch hunt, FITS extraction, automated catalog fetch.
 
 **7. Close (~20s)** — Repo is public, Apache 2.0, stdlib-only Python. AI use disclosed as "Super Intelligence". "Try it. Check it. Kill it if it's wrong."
 
@@ -31,5 +31,5 @@
 
 - Tests: `PYTHONPATH=src python3 -m unittest discover -s tests` — 10/10 pass.
 - Calibration hunt: `calibrate` → 44 rows, 4 epochs; `hunt` → planted mover 32.33 arcsec/day, rms 0.09, hold-out 0.26 arcsec (tolerance 6.0); stars 0.00–0.01 arcsec/day killed; glitches killed on roundness 0.9; 0 case files.
-- Live IRSA retry same afternoon: HTTP 502 Proxy Error in ~1.6s — still blocked from this sandbox, not a code failure (client parsed a valid empty VOTable earlier).
+- Live IRSA (updated Sun Nov 15, ~02:00 ET): root cause of the empty results found and fixed — the client sent FORMAT=application/x-votable+xml, which IRSA silently answers with an empty table; dropping it (commit d8c8b59d07) made the repo's own inventory command return 10 real spherex_qr3 images (RA 150.0, Dec 2.0, radius 0.05) in ~2s, grouped into 2 epochs. Tests still 10/10. Wide queries still die at the sandbox proxy (HTTP 502); small patches pass.
 - Skeptic caveat, in the report: time-shuffle control dissolved tracks (8 vs 9); position-scramble still linked 9 tracks — flagged as WARNING in the report, open work, not hidden.

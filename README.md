@@ -84,13 +84,18 @@ PYTHONPATH=src python -m unittest discover -s tests -v
   linking and motion fitting; all six proof gates; Skeptic negative
   controls; case-file and report generation; calibration data with
   known ground truth (10/10 unit tests pass, end-to-end hunt verified).
-- **Live IRSA access**: the SIA client reached IRSA and parsed a valid
-  (empty) VOTable response for one small query, but repeated live
-  queries from the build sandbox timed out on 2026-11-14 (SIA and TAP,
-  up to 270 s). A live inventory with real image rows is therefore
-  still UNVERIFIED from this network; the same client is expected to
-  work from a normal connection, and IRSA queries answered fine in
-  project prep (428 images in a test query).
+- **Live IRSA access**: VERIFIED 2026-11-15. Two stacked faults were
+  found and separated. First, our own bug: the client sent
+  FORMAT=application/x-votable+xml, and IRSA's SIA service silently
+  answers that parameter with an empty table (QUERY_STATUS OK, zero
+  rows); dropping it fixed the client, proven by bisection against the
+  identical query. Second, the build sandbox's egress proxy kills slow
+  queries (HTTP 502 / timeouts on wide searches), so hunts run in
+  small patches: a 0.05 degree cone on spherex_qr3 returned 10 real
+  images in about 2 seconds, grouped into 2 epochs by the inventory
+  command. A wide area inventory from this network is still proxy
+  limited; from a normal connection the same client has no such
+  ceiling (project prep pulled 428 images in one test query).
 - **Not yet built**: automatic source extraction from downloaded SPHEREx
   FITS images (needs astropy/SEP; detection tables are currently the
   pipeline's input), and an automated Gaia/WISE/MPC catalog fetch

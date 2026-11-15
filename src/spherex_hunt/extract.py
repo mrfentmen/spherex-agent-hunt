@@ -68,6 +68,55 @@ def read_hdu1(path: str):
     raise ValueError('no HDU1')
 
 
+def local_snr(peak: float, med: float, var_val, mad_sigma: float) -> float:
+    """Per-pixel SNR: variance plane wins, MAD scatter is the fallback."""
+    import math
+    try:
+        v = float(var_val)
+    except (TypeError, ValueError):
+        v = float("nan")
+    if math.isfinite(v) and v > 0:
+        return (peak - med) / math.sqrt(v)
+    return (peak - med) / (mad_sigma or 1.0)
+
+
+def read_image_and_variance(path: str):
+    """Return (header, image, variance-or-None) for a SPHEREx L2B frame."""
+    with open(path, 'rb') as f:
+        hdr0 = img = var = None
+        shape = None
+        for _ in range(8):
+            cards = []
+            while True:
+                blk = f.read(2880)
+                if not blk:
+                    break
+                for i in range(0, 2880, 80):
+                    cards.append(blk[i:i+80].decode('ascii', 'replace'))
+                if any(c.startswith('END') for c in cards[-36:]):
+                    break
+            if not cards:
+                break
+            hdr = {c[:8].strip(): c[10:30].strip() for c in cards if '=' in c[:10]}
+            naxis = int(hdr.get('NAXIS', '0').split('/')[0])
+            naxes = [int(hdr.get(f'NAXIS{n}', '0').split('/')[0]) for n in range(1, naxis+1)]
+            import math
+            bpp = abs(int(hdr.get('BITPIX', '8').split('/')[0])) // 8
+            nbytes = math.ceil(bpp * (math.prod(naxes) if naxes and all(naxes) else 0) / 2880) * 2880 if naxis else 0
+            raw = f.read(nbytes) if nbytes else b''
+            if naxis == 2 and hdr.get('XTENSION', '').strip("' ") == 'IMAGE':
+                n1, n2 = naxes[0], naxes[1]
+                arr = np.frombuffer(raw[:n1*n2*4], dtype='>f4').reshape((n2, n1)).astype(np.float32)
+                if img is None:
+                    hdr0, img, shape = hdr, arr, (n1, n2)
+                elif hdr.get('EXTNAME', '').strip("' ") == 'VARIANCE' and (n1, n2) == shape:
+                    var = arr
+                    break
+        if img is None:
+            raise ValueError('no IMAGE HDU')
+        return hdr0, img, var
+
+
 def moments(img, x, y, r=4):
     y0, y1 = max(0, y-r), min(img.shape[0], y+r+1)
     x0, x1 = max(0, x-r), min(img.shape[1], x+r+1)
@@ -109,7 +158,7 @@ def xy_to_radec(hdr, x, y, scale=None) -> tuple[float, float]:
 
 def extract_frame(path: str, epoch_id: str, mjd: float, image_id: str, nsigma=5.0, top_k=400, edge=5):
     from .detections import Detection
-    hdr, img = read_hdu1(path)
+    hdr, img, var = read_image_and_variance(path)
     med, sigma = background_mad(img)
     peaks = find_peaks(img, nsigma=nsigma, edge=edge)
     peaks.sort(key=lambda p: p[2], reverse=True)
@@ -119,6 +168,7 @@ def extract_frame(path: str, epoch_id: str, mjd: float, image_id: str, nsigma=5.
     for i, (x, y, peak) in enumerate(peaks):
         cx, cy, rnd, area, flux = moments(img, x, y)
         ra, dec = xy_to_radec(hdr, cx, cy, scale)
-        snr = (peak - med) / (sigma or 1.0)
+        vv = var[int(y), int(x)] if var is not None else float("nan")
+        snr = local_snr(peak, med, vv, sigma)
         dets.append(Detection(f'FITS-{i}', epoch_id, mjd, ra, dec, snr, flux, rnd, area, cx, cy, image_id))
     return dets

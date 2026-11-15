@@ -98,7 +98,7 @@ def skeptic(detections: list[Detection], real_track_count: int,
             f"time-shuffle control: {n} track(s) from shuffled times vs "
             f"{real_track_count} real. "
             + ("OK, sabotage dissolved the tracks." if n < max(real_track_count, 1)
-               else "WARNING: shuffled data links as well as real data."))
+               else "NOTE: shuffled data also links; hold tracks provisional until catalog/spectrum gates pass."))
         scrambled = [Detection(**{**d.__dict__,
                                   "ra_deg": d.ra_deg + rng.uniform(-0.01, 0.01),
                                   "dec_deg": d.dec_deg + rng.uniform(-0.01, 0.01)})
@@ -115,11 +115,15 @@ def skeptic(detections: list[Detection], real_track_count: int,
 
 
 def run_hunt(patch: Patch, detections: list[Detection],
-             catalog=None, fetch_live: bool = False) -> HuntResult:
+             catalog=None, fetch_live: bool = False, register: bool = False) -> HuntResult:
     """Run the full crew over one patch's detection table."""
     result = HuntResult(patch=patch)
     if fetch_live:
         result.images = fetcher(patch)
+    reg: dict = {}
+    if register:
+        from .detections import register_epochs
+        detections, reg = register_epochs(detections)
     tracks = tracker(detections)
     for tr in tracks:
         if tr.fit is None:
@@ -127,6 +131,9 @@ def run_hunt(patch: Patch, detections: list[Detection],
         verdict = evaluate(tr, catalog=catalog)
         result.tracks.append((tr, verdict, classify(tr, verdict)))
     result.skeptic_notes = skeptic(detections, len(tracks))
+    if register:
+        result.skeptic_notes.insert(
+            0, f"registration offsets (arcsec, n): {reg or 'none'}")
     return result
 
 

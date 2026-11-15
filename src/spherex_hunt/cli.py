@@ -42,6 +42,8 @@ def main(argv: list[str] | None = None) -> int:
     hunt.add_argument("--detections", required=True)
     hunt.add_argument("--catalog")
     hunt.add_argument("--out", required=True)
+    hunt.add_argument("--register", action="store_true",
+                      help="align epochs 2..n onto epoch 1 before linking")
 
     ext = sub.add_parser("extract", help="FITS HDU1 -> detections CSV (numpy only)")
     ext.add_argument("--fits", required=True)
@@ -77,7 +79,8 @@ def main(argv: list[str] | None = None) -> int:
             from .detections import load_detections
             detections = load_detections(args.detections)
         catalog = load_catalog(args.catalog) if args.catalog else None
-        result = agents.run_hunt(patch, detections, catalog=catalog)
+        result = agents.run_hunt(patch, detections, catalog=catalog,
+                               register=args.register)
         os.makedirs(args.out, exist_ok=True)
         report = agents.reporter(result)
         with open(os.path.join(args.out, "report.txt"), "w") as fh:

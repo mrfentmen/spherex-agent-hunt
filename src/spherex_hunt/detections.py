@@ -210,3 +210,62 @@ def link_tracks(detections: list[Detection],
             if id(seed) in used:
                 break
     return tracks
+
+
+def epoch_offset(ref: list[Detection], mov: list[Detection],
+                 tol_arcsec: float = 6.0, top_n: int = 30) -> tuple[float, float, int]:
+    """Median (dra, ddec) in arcsec aligning mov onto ref via mutual nearest matches."""
+    import math
+    ref_b = sorted(ref, key=lambda d: d.snr, reverse=True)[:top_n]
+    mov_b = sorted(mov, key=lambda d: d.snr, reverse=True)[:top_n]
+    pairs = []
+    for m in mov_b:
+        best, best_d = None, tol_arcsec
+        for r in ref_b:
+            d = angular_sep_arcsec(m.ra_deg, m.dec_deg, r.ra_deg, r.dec_deg)
+            if d < best_d:
+                best, best_d = r, d
+        if best is None:
+            continue
+        back, back_d = None, tol_arcsec
+        for m2 in mov_b:
+            d = angular_sep_arcsec(best.ra_deg, best.dec_deg, m2.ra_deg, m2.dec_deg)
+            if d < back_d:
+                back, back_d = m2, d
+        if back is m:
+            cosd = math.cos(math.radians((m.dec_deg + best.dec_deg) / 2.0))
+            pairs.append(((m.ra_deg - best.ra_deg) * cosd * ARCSEC_PER_DEG,
+                          (m.dec_deg - best.dec_deg) * ARCSEC_PER_DEG))
+    if not pairs:
+        return 0.0, 0.0, 0
+    pairs.sort()
+    mid = len(pairs) // 2
+    if len(pairs) % 2:
+        med = pairs[mid]
+    else:
+        med = ((pairs[mid - 1][0] + pairs[mid][0]) / 2,
+               (pairs[mid - 1][1] + pairs[mid][1]) / 2)
+    return med[0], med[1], len(pairs)
+
+
+def register_epochs(detections: list[Detection], tol_arcsec: float = 6.0) -> tuple[list[Detection], dict]:
+    """Shift epochs 2..n onto epoch 1 by median bright-star offset. Returns (dets, report)."""
+    import math
+    from dataclasses import replace
+    by_epoch: dict[str, list[Detection]] = {}
+    for d in detections:
+        by_epoch.setdefault(d.epoch_id, []).append(d)
+    eids = sorted(by_epoch, key=lambda e: min(d.mjd for d in by_epoch[e]))
+    if len(eids) < 2:
+        return detections, {}
+    ref = by_epoch[eids[0]]
+    out = list(ref)
+    report = {}
+    for eid in eids[1:]:
+        dra, ddec, n = epoch_offset(ref, by_epoch[eid], tol_arcsec=tol_arcsec)
+        cosd = math.cos(math.radians(sum(d.dec_deg for d in by_epoch[eid]) / len(by_epoch[eid])))
+        for d in by_epoch[eid]:
+            out.append(replace(d, ra_deg=d.ra_deg - dra / ARCSEC_PER_DEG / max(cosd, 0.2),
+                               dec_deg=d.dec_deg - ddec / ARCSEC_PER_DEG))
+        report[eid] = (round(dra, 2), round(ddec, 2), n)
+    return out, report

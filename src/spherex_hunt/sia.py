@@ -153,7 +153,8 @@ def write_inventory(records: list[ImageRecord], path: str) -> None:
 
 
 def pick_overlapping_frames(records: list[ImageRecord], min_gap_days: float = 1.0,
-                             max_sep_deg: float = 0.5, limit: int = 3) -> list[ImageRecord]:
+                             max_sep_deg: float = 0.5, limit: int = 3,
+                             same_detector: bool = False) -> list[ImageRecord]:
     """Pick same-sky frames across spaced epochs."""
     from .detections import angular_sep_arcsec
 
@@ -167,6 +168,8 @@ def pick_overlapping_frames(records: list[ImageRecord], min_gap_days: float = 1.
             continue
         if len(picks) >= limit:
             break
+        if same_detector and detector_key(r.access_url) != detector_key(picks[0].access_url):
+            continue
         if r.t_min_mjd - picks[-1].t_min_mjd < min_gap_days:
             continue
         if angular_sep_arcsec(picks[0].ra_deg, picks[0].dec_deg,
@@ -174,3 +177,10 @@ def pick_overlapping_frames(records: list[ImageRecord], min_gap_days: float = 1.
             continue
         picks.append(r)
     return picks
+
+
+def detector_key(access_url: str) -> str:
+    """Detector/band tag from a SPHEREx file name, e.g. '3D2'. '' when absent."""
+    import re
+    m = re.search(r"_(\dD\d)(?:_|$|[^0-9A-Za-z])", access_url)
+    return m.group(1) if m else ""

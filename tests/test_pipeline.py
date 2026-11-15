@@ -135,6 +135,17 @@ class TestLinkingBasics(unittest.TestCase):
         self.assertAlmostEqual(fit.rate_arcsec_per_day, 3.6 *
                                (1 / 1.0), delta=0.6)
 
+    def test_epoch_offset_recovers_shift(self):
+        from spherex_hunt.detections import epoch_offset
+        ref = [Detection(f"r{i}", "epoch_1", 60800.0, 10.0 + 0.01 * i, 20.0,
+                         50, 1000) for i in range(5)]
+        mov = [Detection(f"m{i}", "epoch_2", 60801.0, 10.0 + 0.01 * i + 2.0 / 3600.0,
+                         20.0 + 1.0 / 3600.0, 50, 1000) for i in range(5)]
+        dra, ddec, n = epoch_offset(ref, mov)
+        self.assertEqual(n, 5)
+        self.assertAlmostEqual(dra, 2.0, delta=0.2)
+        self.assertAlmostEqual(ddec, 1.0, delta=0.2)
+
 
 if __name__ == "__main__":
     unittest.main()

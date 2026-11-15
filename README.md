@@ -83,7 +83,7 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 - **Working and tested**: VOTable parsing; epoch grouping; track
   linking and motion fitting; all six proof gates; Skeptic negative
   controls; case-file and report generation; calibration data with
-  known ground truth (21/21 unit tests pass, end-to-end hunt verified);
+  known ground truth (26/26 unit tests pass, end-to-end hunt verified);
   plus a numpy-only FITS extractor (`extract` command: HDU1 read,
   NaN-safe background, local-max peaks with duplicate suppression and
   edge margin, moment shapes, linear-TAN sky positions).
@@ -102,13 +102,16 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 - **Real-sky run (Nov 15)**: 3 overlapping same-sky frames, 36-day span,
   180 numpy detections, 2 tracks linked across all 3 epochs (114 and 234
   arcsec/day, hold-out PASS) — both KILLED on artifact_exclusion, 0 case
-  files. The gates work on real data; nothing is claimed. Registration
-  diagnostic on a same-detector pair 36 days apart: 10/60 bright sources
-  match with a (-9, -20) arcsec systematic — linear WCS is the accuracy
-  ceiling, SIP astrometry is next.
-- **Not yet built**: an automated Gaia/WISE/MPC catalog fetch
-  (catalogs are currently supplied as CSV exports). Labeled
-  UNVERIFIED in the gates rather than silently assumed.
+  files. The gates work on real data; nothing is claimed. Astrometry
+  check with full SIP (PC matrix + order-3 distortion + exact TAN):
+  two same-detector frames 36 days apart disagree by ~500 arcsec bulk
+  (per-exposure coarse WCS), ~17 arcsec residual after alignment —
+  that residual, not the linker, is the accuracy floor. Star-catalog
+  anchoring is next.
+- **Catalog fetch**: `fetch-catalog` pulls Gaia DR3 over keyless TAP into
+  the hunt's CSV format (offline-tested; live fetch is blocked from the
+  build sandbox proxy, run it from a normal connection). Until a catalog
+  is supplied the gate stays UNVERIFIED rather than silently assumed.
 
 ## AI use disclosure
 

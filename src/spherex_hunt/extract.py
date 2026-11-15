@@ -143,6 +143,62 @@ def aperture_flux(img, cx: float, cy: float, r: int = 4) -> float:
     return float(np.nansum(np.where(in_ap, cut - bg, 0.0)))
 
 
+def _hdr_float(hdr, key: str, default: float = 0.0) -> float:
+    v = hdr.get(key)
+    if v is None:
+        return default
+    try:
+        return float(str(v).split("/")[0].strip().strip("'"))
+    except ValueError:
+        return default
+
+
+def _sip_poly(hdr, prefix: str, order: int, u: float, v: float) -> float:
+    # SIP sums run over every stored term, constant included.
+    s = 0.0
+    for p in range(order + 1):
+        for q in range(order + 1 - p):
+            c = _hdr_float(hdr, f"{prefix}_{p}_{q}", 0.0)
+            if c:
+                s += c * (u ** p) * (v ** q)
+    return s
+
+
+def sip_to_radec(hdr, x: float, y: float) -> tuple[float, float]:
+    """Pixel to sky via CD/PC matrix, SIP distortion, and TAN deprojection."""
+    import math
+    ra0 = _hdr_float(hdr, "CRVAL1")
+    dec0 = _hdr_float(hdr, "CRVAL2")
+    crpix1 = _hdr_float(hdr, "CRPIX1")
+    crpix2 = _hdr_float(hdr, "CRPIX2")
+    cd11 = _hdr_float(hdr, "CD1_1"); cd12 = _hdr_float(hdr, "CD1_2")
+    cd21 = _hdr_float(hdr, "CD2_1"); cd22 = _hdr_float(hdr, "CD2_2")
+    if cd11 == 0.0 and cd12 == 0.0 and cd21 == 0.0 and cd22 == 0.0:
+        pc11 = _hdr_float(hdr, "PC1_1", 1.0); pc12 = _hdr_float(hdr, "PC1_2", 0.0)
+        pc21 = _hdr_float(hdr, "PC2_1", 0.0); pc22 = _hdr_float(hdr, "PC2_2", 1.0)
+        cd11, cd12 = pc11 * _hdr_float(hdr, "CDELT1", 1.0), pc12 * _hdr_float(hdr, "CDELT1", 1.0)
+        cd21, cd22 = pc21 * _hdr_float(hdr, "CDELT2", 1.0), pc22 * _hdr_float(hdr, "CDELT2", 1.0)
+    dx, dy = x - crpix1, y - crpix2
+    u = cd11 * dx + cd12 * dy
+    v = cd21 * dx + cd22 * dy
+    ao = int(_hdr_float(hdr, "A_ORDER", 0)); bo = int(_hdr_float(hdr, "B_ORDER", 0))
+    U = u + _sip_poly(hdr, "A", ao, u, v)
+    V = v + _sip_poly(hdr, "B", bo, u, v)
+    # TAN deprojection (Calabretta & Greisen paper II, inverse).
+    ra0r, dec0r = math.radians(ra0), math.radians(dec0)
+    xr, yr = math.radians(U), math.radians(V)
+    rho = math.hypot(xr, yr)
+    if rho == 0.0:
+        return ra0, dec0
+    c = math.atan(rho)
+    dec = math.asin(math.cos(c) * math.sin(dec0r)
+                     + yr * math.sin(c) * math.cos(dec0r) / rho)
+    ra = ra0r + math.atan2(xr * math.sin(c),
+                           rho * math.cos(dec0r) * math.cos(c)
+                           - yr * math.sin(dec0r) * math.sin(c))
+    return math.degrees(ra) % 360.0, math.degrees(dec)
+
+
 def moments(img, x, y, r=4):
     y0, y1 = max(0, y-r), min(img.shape[0], y+r+1)
     x0, x1 = max(0, x-r), min(img.shape[1], x+r+1)
@@ -192,10 +248,14 @@ def extract_frame(path: str, epoch_id: str, mjd: float, image_id: str, nsigma=5.
     peaks = peaks[:top_k]
     scale = pix_scale_deg(hdr)
     band = band if band else band_from_path(path)
+    use_sip = bool(hdr) and "CRPIX1" in hdr
     dets = []
     for i, (x, y, peak) in enumerate(peaks):
         cx, cy, rnd, area, _ = moments(img, x, y)
-        ra, dec = xy_to_radec(hdr, cx, cy, scale)
+        if use_sip:
+            ra, dec = sip_to_radec(hdr, cx, cy)
+        else:
+            ra, dec = xy_to_radec(hdr, cx, cy, scale)
         vv = var[int(y), int(x)] if var is not None else float("nan")
         snr = local_snr(peak, med, vv, sigma)
         flux = aperture_flux(img, cx, cy)

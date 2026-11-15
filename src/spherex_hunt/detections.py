@@ -154,7 +154,8 @@ class Track:
 
 def link_tracks(detections: list[Detection],
                 tolerance_arcsec: float = 6.0,
-                min_epochs: int = 3) -> list[Track]:
+                min_epochs: int = 3,
+                max_seed_rate: float = 3600.0) -> list[Track]:
     """Greedy tracklet linking.
 
     Seeds a track from detections in two different epochs, extends it with
@@ -182,7 +183,7 @@ def link_tracks(detections: list[Detection],
                 except ValueError:
                     continue
                 # A pair with an absurd implied rate is not a seed.
-                if fit.rate_arcsec_per_day > 3600.0:
+                if fit.rate_arcsec_per_day > max_seed_rate:
                     continue
                 members = list(pair)
                 member_epochs = {seed.epoch_id, partner.epoch_id}

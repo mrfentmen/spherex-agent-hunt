@@ -57,6 +57,13 @@ def main(argv: list[str] | None = None) -> int:
                      help="band label (default: detector tag from file name)")
     ext.add_argument("--out", required=True)
 
+    cat = sub.add_parser("fetch-catalog", help="Gaia DR3 cone -> catalog CSV (keyless TAP)")
+    cat.add_argument("--ra", type=float, required=True)
+    cat.add_argument("--dec", type=float, required=True)
+    cat.add_argument("--radius", type=float, default=0.3)
+    cat.add_argument("--limit", type=int, default=2000)
+    cat.add_argument("--out", required=True)
+
     args = ap.parse_args(argv)
 
     if args.cmd == "inventory":
@@ -113,6 +120,13 @@ def main(argv: list[str] | None = None) -> int:
             for d in dets:
                 w.writerow({c: getattr(d, c) for c in cols})
         print(f"{len(dets)} detections -> {args.out}")
+        return 0
+
+    if args.cmd == "fetch-catalog":
+        from . import catalogs as _cat
+        rows = _cat.fetch_gaia_cone(args.ra, args.dec, args.radius, limit=args.limit)
+        _cat.write_catalog_csv(rows, args.out)
+        print(f"{len(rows)} catalog sources -> {args.out}")
         return 0
     return 2
 

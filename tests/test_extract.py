@@ -85,6 +85,34 @@ class TestExtract(unittest.TestCase):
         self.assertTrue(np.allclose(got, img))
         self.assertTrue(np.allclose(got_var, var))
 
+    def test_sip_linear_term_matches_cd(self):
+        from spherex_hunt.extract import sip_to_radec
+        hdr = {"CRVAL1": "10.0", "CRVAL2": "20.0", "CRPIX1": "0.0", "CRPIX2": "0.0",
+               "CD1_1": "0.001", "CD1_2": "0.0", "CD2_1": "0.0", "CD2_2": "0.001",
+               "A_ORDER": "0", "B_ORDER": "0"}
+        ra, dec = sip_to_radec(hdr, 100.0, 0.0)
+        import math
+        self.assertAlmostEqual(ra, 10.0 + 0.1 / math.cos(math.radians(20.0)), places=5)
+        self.assertAlmostEqual(dec, 20.0, places=4)  # real TAN, not flat-sky
+
+    def test_sip_quadratic_term_applies(self):
+        from spherex_hunt.extract import sip_to_radec
+        hdr = {"CRVAL1": "0.0", "CRVAL2": "0.0", "CRPIX1": "0.0", "CRPIX2": "0.0",
+               "CD1_1": "1.0", "CD1_2": "0.0", "CD2_1": "0.0", "CD2_2": "1.0",
+               "A_ORDER": "2", "B_ORDER": "0", "A_2_0": "0.001"}
+        ra, dec = sip_to_radec(hdr, 0.1, 0.0)
+        self.assertAlmostEqual(ra, 0.1 + 0.001 * 0.01, places=6)
+        self.assertAlmostEqual(dec, 0.0, places=6)
+
+    def test_sip_constant_term_applies(self):
+        from spherex_hunt.extract import sip_to_radec
+        hdr = {"CRVAL1": "0.0", "CRVAL2": "0.0", "CRPIX1": "0.0", "CRPIX2": "0.0",
+               "CD1_1": "1.0", "CD1_2": "0.0", "CD2_1": "0.0", "CD2_2": "1.0",
+               "A_ORDER": "1", "B_ORDER": "0", "A_0_0": "0.5"}
+        ra, dec = sip_to_radec(hdr, 0.0, 0.0)
+        self.assertAlmostEqual(ra, 0.5, places=4)  # exact TAN, not flat-sky
+        self.assertAlmostEqual(dec, 0.0, places=6)
+
 
 if __name__ == '__main__':
     unittest.main()

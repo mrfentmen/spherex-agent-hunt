@@ -17,6 +17,13 @@ class TestExtract(unittest.TestCase):
         peaks = find_peaks(img, nsigma=1.0)
         self.assertEqual(len(peaks), 1)
 
+    def test_edge_peaks_rejected(self):
+        img = np.zeros((32, 32), dtype=np.float32)
+        img[1, 1] = 100.0
+        img[30, 30] = 90.0
+        peaks = find_peaks(img, nsigma=1.0, edge=5)
+        self.assertEqual(len(peaks), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
